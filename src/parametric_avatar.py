@@ -24,7 +24,7 @@ class ParametricAvatar(DECA):
                  use_neck_deforms=False,
                  subdivide_mesh=False,
                  use_details=False,
-                 use_tex=False,
+                 use_tex=True,
                  external_params=None,
                  device=torch.device('cpu'),
                  ):
@@ -426,18 +426,20 @@ class ParametricAvatar(DECA):
         # Visualize shape
         default_cam = torch.zeros_like(target_codedict['cam'])[:, :3]  # default cam has orthogonal projection
         default_cam[:, :1] = 5.0
-
+ 
         cam_rot_mats, root_joint, verts_template, \
         shape_neutral_frontal, shape_parametric_frontal = self.get_parametric_vertices(target_codedict, neutral_pose)
 
         if deformer_nets['mlp_deformer']:
-            verts_deforms = self.deform_source_mesh(verts_template, neural_texture, deformer_nets)
+            verts_deforms = self.deform_source_mesh(verts_template, neural_texture, deformer_nets) # B, 5023, 3
 
             # Obtain visualized frontal vertices
             faces = self.render.faces.expand(batch_size, -1, -1)
 
-            vertex_normals = util.vertex_normals(verts_template, faces)
+            vertex_normals = util.vertex_normals(verts_template, faces)  # B, 5023, 3
             verts_deforms = verts_deforms * vertex_normals
+
+        original_mesh = Meshes(verts=verts_template.cpu(), faces=faces.long().cpu())
 
         verts_final = verts_template + verts_deforms
 
@@ -492,10 +494,12 @@ class ParametricAvatar(DECA):
             'shape_final_frontal_images': shape_final_frontal,
             'shape_final_posed_images': shape_final_posed,
             'shape_images': shape_target,
-            'shape_target_displ_images': detail_shape_target if self.use_details else None
+            'shape_target_displ_images': detail_shape_target if self.use_details else None,
+            'original_mesh': original_mesh
         }
         for k, v in visdict.items():
             if v is None: continue
+            if isinstance(v, Meshes): continue
             visdict[k] = F.interpolate(v, size=self.image_size, mode='bilinear')
 
         return opdict, visdict
@@ -534,7 +538,7 @@ class ParametricAvatar(DECA):
 
         if neural_texture is None:
             neural_texture = self.estimate_texture(source_image, source_mask, deformer_nets['neural_texture_encoder'])
-            source_information['neural_texture'] = neural_texture
+            source_information['neural_texture'] = neural_texture  #  1 x 8 x 256 x 256
 
         if self.external_params['use_distill']:
             delta_blendshapes = self.encode_by_distill(source_image)
@@ -585,6 +589,7 @@ class ParametricAvatar(DECA):
             'target_shape_parametric_frontal_img': visdict['shape_parametric_frontal_images'],
             'target_shape_neutral_frontal_img': visdict['shape_neutral_frontal_images'],
             'source_information': source_information,
+            'original_mesh': visdict['original_mesh']
         }
 
         return outputs

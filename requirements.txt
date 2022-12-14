@@ -105,7 +105,6 @@ PySocks==1.7.1
 python-dateutil==2.8.2
 pythreejs==2.3.0
 pytorch-msssim==0.2.1
-pytorch3d==0.6.0
 pytz==2020.1
 PyWavelets==1.1.1
 PyYAML==6.0
@@ -133,10 +132,7 @@ threadpoolctl==2.2.0
 tifffile==2021.7.2
 toml==0.10.2
 toolz==0.11.1
-torch==1.10.0
 torchsummary==1.5.1
-torchvision==0.11.1
-tornado==6.1
 tqdm==4.62.3
 traitlets==5.1.0
 traittypes==0.2.1

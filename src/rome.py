@@ -113,7 +113,7 @@ class ROME(nn.Module):
         parser.add_argument('--output_unet_deformer_feats', default=32, type=int,
                             help='output features in the UNet')
 
-        parser.add_argument('--use_deca_details', default=False, type=args_utils.str2bool, choices=[True, False])
+        parser.add_argument('--use_deca_details', default=True, type=args_utils.str2bool, choices=[True, False])
         parser.add_argument('--use_flametex', default=False, type=args_utils.str2bool, choices=[True, False])
 
         parser.add_argument('--upsample_type', default='nearest', type=str,
@@ -272,11 +272,11 @@ class ROME(nn.Module):
         pred_img = torch.sigmoid(unet_outputs[:, :3])
         pred_soft_mask = torch.sigmoid(unet_outputs[:, 3:])
 
-        return_mesh = False
+        return_mesh = True
         if return_mesh:
             verts = result_dict['vertices_target'].cpu()
             faces = self.parametric_avatar.render.faces.expand(verts.shape[0], -1, -1).long()
-            result_dict['mesh'] = Meshes(verts=verts, faces=faces)
+            result_dict['mesh'] = Meshes(verts=-verts, faces=faces.cpu())
 
         result_dict['pred_target_unet_mask'] = pred_soft_mask
         result_dict['pred_target_img'] = pred_img

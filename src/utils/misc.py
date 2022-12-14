@@ -6,7 +6,6 @@ import apex
 from torch import nn
 
 
-
 def apply_imagenet_normalization(input):
     r"""Normalize using ImageNet mean and std.
     Args:

@@ -1,7 +1,11 @@
+import cv2
 import torch
 import numpy as np
 import torch.nn as nn
 import torchvision.models as models
+from PIL import Image
+
+import ffmpeg
 
 
 def create_regressor(model_name, num_params):
@@ -58,6 +62,52 @@ def tensor2image(tensor):
     image = tensor.detach().cpu().numpy()
     image = image * 255.
     image = np.maximum(np.minimum(image, 255), 0)
-    image = image.transpose(1,2,0)[:,:,[2,1,0]]
+    if image.shape[0] == 3:
+        image = image.transpose(1,2,0)[:,:,[2,1,0]]
+    else:
+        image = image.transpose(1,2,0)
     return image.astype(np.uint8).copy()
 
+
+def read_video(video_path, up_limit=None, resize=None):
+    """
+    :param video_path:
+    :param up_limit:
+    :param resize:
+    :return: PIL list
+    """
+    frames = []
+    cap = cv2.VideoCapture(video_path)
+    cnt = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = Image.fromarray(frame)
+            if resize is not None:
+                frame = frame.resize((resize, resize))
+            frames.append(frame)
+        else:
+            break
+        cnt += 1
+        if up_limit is not None and cnt >= up_limit:
+            break
+    cap.release()
+    return frames
+
+
+def read_video_data(video_path):
+    print(video_path)
+    video_probe_result = ffmpeg.probe(video_path)
+    fps = eval(video_probe_result['streams'][0]['r_frame_rate'])
+    print(fps)
+
+    audio_probe_result = ffmpeg.probe(video_path, select_streams='a')
+
+    # If p['streams'] is not empty, clip has an audio stream
+    if audio_probe_result['streams']:
+        stream = ffmpeg.input(video_path).audio
+    else:
+        stream = None
+
+    return stream, fps
